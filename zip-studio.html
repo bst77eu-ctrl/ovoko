@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio ZIP — renommer, voir les images, recréer l'archive</title>
+<style>
+  :root {
+    --fond: #10141a; --panneau: #1a2129; --bord: #2c3540;
+    --texte: #d7dde4; --sourd: #8a96a3; --accent: #4d9fdc;
+    --alerte: #d9a13b; --erreur: #d0604f; --ok: #5aa46c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte);
+         font: 15px/1.5 system-ui, sans-serif; }
+  #bandeau { position: sticky; top: 0; z-index: 20; background: #16202a;
+             color: var(--sourd); border-bottom: 1px solid var(--bord);
+             padding: 8px 16px; text-align: center; font-size: 13px; }
+  #bandeau b { color: var(--texte); }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 16px 60px; }
+  h1 { font-size: 20px; margin: 16px 0 4px; }
+  .carte { background: var(--panneau); border: 1px solid var(--bord);
+           border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .carte[hidden] { display: none; }
+  h2 { margin: 0 0 12px; font-size: 17px; }
+  .note { color: var(--sourd); font-size: 13px; margin: 0 0 10px; }
+  .note:last-child { margin-bottom: 0; }
+
+  #zone-depot { border: 2px dashed var(--bord); border-radius: 8px;
+                padding: 34px 18px; text-align: center; color: var(--sourd);
+                cursor: pointer; transition: border-color .15s, background .15s; }
+  #zone-depot:hover, #zone-depot.survol { border-color: var(--accent);
+                background: #16202a; color: var(--texte); }
+  #zone-depot strong { display: block; color: var(--texte); font-size: 16px;
+                margin-bottom: 4px; }
+
+  .ligne-outils { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+  label.champ { display: block; font-size: 13px; color: var(--sourd); }
+  label.champ.pousse { flex: 1 1 260px; }
+  label.champ input, label.champ select {
+    display: block; width: 100%; margin-top: 4px; padding: 7px 9px;
+    background: var(--fond); color: var(--texte);
+    border: 1px solid var(--bord); border-radius: 5px; font-size: 14px; }
+  label.champ input:focus, label.champ select:focus {
+    outline: none; border-color: var(--accent); }
+  label.case { display: flex; align-items: center; gap: 7px; font-size: 13px;
+               color: var(--sourd); cursor: pointer; }
+
+  button { font: inherit; cursor: pointer; }
+  button.action { background: var(--accent); color: #0b1017; border: none;
+                  border-radius: 6px; padding: 9px 20px; font-size: 15px;
+                  font-weight: 600; }
+  button.action:disabled { background: var(--bord); color: var(--sourd);
+                           cursor: not-allowed; }
+  button.secondaire { background: var(--fond); color: var(--texte);
+                  border: 1px solid var(--bord); border-radius: 6px;
+                  padding: 7px 13px; font-size: 13px; }
+  button.secondaire:hover { border-color: var(--accent); color: var(--accent); }
+  button.secondaire:disabled { color: var(--sourd); cursor: not-allowed;
+                  border-color: var(--bord); }
+  button.danger:hover { border-color: var(--erreur); color: var(--erreur); }
+
+  .segments { display: inline-flex; border: 1px solid var(--bord);
+              border-radius: 6px; overflow: hidden; }
+  .segments button { background: var(--fond); color: var(--sourd);
+              border: none; padding: 7px 16px; font-size: 13px; }
+  .segments button.actif { background: var(--accent); color: #0b1017;
+              font-weight: 600; }
+
+  .entete-carte { display: flex; justify-content: space-between;
+              align-items: center; gap: 12px; flex-wrap: wrap;
+              margin-bottom: 12px; }
+  .entete-carte h2 { margin: 0; }
+
+  table.liste { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.liste th { text-align: left; padding: 6px 8px; color: var(--sourd);
+              font-size: 12px; font-weight: 600; text-transform: uppercase;
+              letter-spacing: .04em; border-bottom: 1px solid var(--bord); }
+  table.liste td { padding: 6px 8px; border-bottom: 1px solid var(--bord);
+              vertical-align: middle; }
+  table.liste tr:last-child td { border-bottom: none; }
+  table.liste tr.exclue { opacity: .42; }
+  td.vignette { width: 52px; }
+  td.vignette img { width: 44px; height: 44px; object-fit: cover;
+              border-radius: 4px; display: block; background: var(--fond);
+              cursor: zoom-in; }
+  td.vignette .icone { width: 44px; height: 44px; border-radius: 4px;
+              background: var(--fond); border: 1px solid var(--bord);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; color: var(--sourd); text-transform: uppercase; }
+  td.nom input { width: 100%; padding: 5px 7px; background: var(--fond);
+              color: var(--texte); border: 1px solid transparent;
+              border-radius: 4px; font-size: 14px; font-family: inherit; }
+  td.nom input:hover { border-color: var(--bord); }
+  td.nom input:focus { outline: none; border-color: var(--accent); }
+  td.nom input.invalide { border-color: var(--erreur); background: #241315; }
+  td.nombre { text-align: right; font-variant-numeric: tabular-nums;
+              color: var(--sourd); white-space: nowrap; }
+  td.actions { width: 1%; white-space: nowrap; }
+  .etiquette { display: inline-block; font-size: 11px; padding: 1px 6px;
+              border-radius: 3px; border: 1px solid var(--bord);
+              color: var(--sourd); margin-left: 6px; }
+  .etiquette.rouge { border-color: var(--erreur); color: var(--erreur); }
+
+  .galerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+              gap: 12px; }
+  .galerie figure { margin: 0; background: var(--fond); border: 1px solid var(--bord);
+              border-radius: 6px; overflow: hidden; }
+  .galerie img { width: 100%; height: 130px; object-fit: contain;
+              display: block; background: #0b0e12; cursor: zoom-in; }
+  .galerie figcaption { padding: 6px 8px; font-size: 12px; color: var(--sourd);
+              word-break: break-all; }
+  .galerie figcaption b { display: block; color: var(--texte); font-weight: 500; }
+
+  .message { margin-top: 12px; font-size: 14px; padding: 9px 12px;
+              border-radius: 6px; border: 1px solid var(--bord);
+              background: var(--fond); }
+  .message[hidden] { display: none; }
+  .message.erreur { border-color: var(--erreur); color: var(--erreur); }
+  .message.ok { border-color: var(--ok); color: var(--ok); }
+  .message.alerte { border-color: var(--alerte); color: var(--alerte); }
+  .message ul { margin: 6px 0 0; padding-left: 20px; }
+
+  #resume { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tuile { background: var(--fond); border: 1px solid var(--bord);
+           border-radius: 6px; padding: 9px 14px; min-width: 110px; }
+  .tuile .valeur { font-size: 19px; font-weight: 700;
+           font-variant-numeric: tabular-nums; }
+  .tuile .intitule { color: var(--sourd); font-size: 12px; }
+
+  #visionneuse { position: fixed; inset: 0; z-index: 40; background: #06080bee;
+           display: flex; flex-direction: column; align-items: center;
+           justify-content: center; padding: 20px; }
+  #visionneuse[hidden] { display: none; }
+  #visionneuse img { max-width: 100%; max-height: calc(100vh - 130px);
+           object-fit: contain; border-radius: 4px; }
+  #visionneuse .barre { display: flex; gap: 10px; align-items: center;
+           margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  #visionneuse .titre { font-size: 14px; color: var(--texte);
+           max-width: 60vw; overflow: hidden; text-overflow: ellipsis;
+           white-space: nowrap; }
+  #visionneuse .compteur { color: var(--sourd); font-size: 13px;
+           font-variant-numeric: tabular-nums; }
+
+  #travail { position: fixed; inset: 0; z-index: 50; background: #06080bcc;
+           display: flex; align-items: center; justify-content: center;
+           color: var(--texte); font-size: 15px; }
+  #travail[hidden] { display: none; }
+  #travail div { background: var(--panneau); border: 1px solid var(--bord);
+           border-radius: 8px; padding: 18px 26px; text-align: center; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden;
+           clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div id="bandeau">
+  <b>Tout se passe dans votre navigateur.</b>
+  Aucun fichier n'est envoyé sur Internet — vous pouvez même couper le réseau.
+</div>
+
+<main>
+  <h1>Studio ZIP</h1>
+  <p class="note">Ouvrez une archive, renommez-la et renommez son contenu,
+  regardez les images qu'elle contient, puis créez un nouveau fichier <code>.zip</code>.</p>
+
+  <!-- 1. Source ------------------------------------------------------- -->
+  <div class="carte">
+    <h2>1. Le fichier de départ</h2>
+    <div id="zone-depot" tabindex="0" role="button">
+      <strong>Déposez un fichier .zip ici</strong>
+      ou cliquez pour le choisir — vous pouvez aussi déposer directement des
+      images pour fabriquer une archive à partir de rien
+    </div>
+    <input type="file" id="saisie-zip" accept=".zip,application/zip" class="sr">
+    <input type="file" id="saisie-ajout" multiple class="sr">
+    <div class="message" id="message-source" hidden></div>
+  </div>
+
+  <!-- 2. Nom de l'archive --------------------------------------------- -->
+  <div class="carte" id="carte-nom" hidden>
+    <h2>2. Le nom de la nouvelle archive</h2>
+    <p class="note">Tapez le nom que vous voulez, ou utilisez un des boutons
+    pour le générer. L'extension <code>.zip</code> est ajoutée toute seule.</p>
+    <div class="ligne-outils">
+      <label class="champ pousse">Nom du fichier
+        <input type="text" id="nom-archive" spellcheck="false"
+               placeholder="mon-archive">
+      </label>
+      <button class="secondaire" id="btn-nom-nettoyer">Nettoyer le nom</button>
+      <button class="secondaire" id="btn-nom-date">Ajouter la date</button>
+      <button class="secondaire" id="btn-nom-origine">Nom d'origine</button>
+    </div>
+    <div class="message" id="message-nom" hidden></div>
+  </div>
+
+  <!-- 3. Contenu ------------------------------------------------------ -->
+  <div class="carte" id="carte-contenu" hidden>
+    <div class="entete-carte">
+      <h2>3. Le contenu</h2>
+      <div class="segments" id="segments-vue">
+        <button data-vue="liste" class="actif">Liste</button>
+        <button data-vue="galerie">Galerie d'images</button>
+      </div>
+    </div>
+
+    <div id="resume"></div>
+
+    <div class="ligne-outils" style="margin-bottom: 14px;">
+      <button class="secondaire" id="btn-ajouter">Ajouter des fichiers…</button>
+      <button class="secondaire" id="btn-tout-cocher">Tout sélectionner</button>
+      <button class="secondaire" id="btn-rien-cocher">Tout désélectionner</button>
+      <button class="secondaire" id="btn-images-cocher">Sélectionner les images</button>
+      <button class="secondaire danger" id="btn-retirer">Retirer la sélection</button>
+    </div>
+
+    <div class="ligne-outils" style="margin-bottom: 6px;">
+      <label class="champ pousse">Renommer la sélection en série
+        <input type="text" id="motif-lot" spellcheck="false"
+               placeholder="photo-###">
+      </label>
+      <label class="champ">Commencer à
+        <input type="number" id="depart-lot" value="1" min="0" step="1"
+               style="width: 90px;">
+      </label>
+      <button class="secondaire" id="btn-lot">Appliquer</button>
+    </div>
+    <p class="note">Les <code>#</code> deviennent un numéro
+    (<code>photo-###</code> → <code>photo-001</code>). L'extension d'origine
+    est conservée. Vous pouvez aussi cliquer un nom dans la liste pour le
+    corriger à la main.</p>
+
+    <div id="vue-liste"></div>
+    <div id="vue-galerie" hidden></div>
+  </div>
+
+  <!-- 4. Création ----------------------------------------------------- -->
+  <div class="carte" id="carte-creer" hidden>
+    <h2>4. Créer le nouveau fichier</h2>
+    <div class="ligne-outils">
+      <button class="action" id="btn-creer">Créer et télécharger le .zip</button>
+      <label class="case"><input type="checkbox" id="opt-compresser" checked>
+        Compresser (sinon : archive « stockée », plus grosse mais instantanée)</label>
+      <label class="case"><input type="checkbox" id="opt-verifier" checked>
+        Relire l'archive produite pour la vérifier</label>
+    </div>
+    <div class="message" id="message-creer" hidden></div>
+  </div>
+</main>
+
+<!-- Visionneuse plein écran -->
+<div id="visionneuse" hidden>
+  <img id="visionneuse-img" alt="">
+  <div class="barre">
+    <button class="secondaire" id="vue-prec">← Précédente</button>
+    <span class="compteur" id="vue-compteur"></span>
+    <button class="secondaire" id="vue-suiv">Suivante →</button>
+    <span class="titre" id="vue-titre"></span>
+    <button class="secondaire" id="vue-telecharger">Télécharger l'image</button>
+    <button class="secondaire" id="vue-fermer">Fermer (Échap)</button>
+  </div>
+</div>
+
+<div id="travail" hidden><div id="travail-texte">Lecture de l'archive…</div></div>
+
+<script>
+"use strict";
+
+/* ==================================================================
+   Outils bas niveau : CRC32, dates DOS, encodages, deflate
+   ================================================================== */
+
+const TABLE_CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(octets) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < octets.length; i++) {
+    c = TABLE_CRC[(c ^ octets[i]) & 0xFF] ^ (c >>> 8);
+  }
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+/* Page de code 437 : noms de fichiers des archives anciennes (0x80–0xFF). */
+const CP437 =
+  "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐" +
+  "└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+
+function decoderNom(octets, drapeaux) {
+  if (drapeaux & 0x0800) return new TextDecoder("utf-8").decode(octets);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(octets);
+  } catch (e) {
+    let s = "";
+    for (const o of octets) s += o < 0x80 ? String.fromCharCode(o) : CP437[o - 0x80];
+    return s;
+  }
+}
+
+function dosVersDate(heure, jour) {
+  const annee = ((jour >> 9) & 0x7F) + 1980;
+  const mois = ((jour >> 5) & 0x0F) - 1;
+  const date = jour & 0x1F;
+  const h = (heure >> 11) & 0x1F;
+  const m = (heure >> 5) & 0x3F;
+  const s = (heure & 0x1F) * 2;
+  const d = new Date(annee, Math.max(0, mois), Math.max(1, date), h, m, s);
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function dateVersDos(d) {
+  const annee = Math.min(2107, Math.max(1980, d.getFullYear()));
+  return {
+    heure: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1),
+    jour: ((annee - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+  };
+}
+
+const COMPRESSION_DISPO =
+  typeof DecompressionStream === "function" && typeof CompressionStream === "function";
+
+async function passerParFlux(octets, flux) {
+  const lu = new Blob([octets]).stream().pipeThrough(flux);
+  return new Uint8Array(await new Response(lu).arrayBuffer());
+}
+
+const decompresser = (o) => passerParFlux(o, new DecompressionStream("deflate-raw"));
+const compresser = (o) => passerParFlux(o, new CompressionStream("deflate-raw"));
+
+/* ==================================================================
+   Lecture d'une archive ZIP
+   ================================================================== */
+
+const SIG_FIN = 0x06054b50;        // end of central directory
+const SIG_CENTRAL = 0x02014b50;    // central directory header
+const SIG_LOCAL = 0x04034b50;      // local file header
+const SIG_FIN64 = 0x06064b50;      // zip64 end of central directory
+const SIG_LOC64 = 0x07064b50;      // zip64 locator
+
+function trouverFin(dv, taille) {
+  const limite = Math.min(taille, 0xFFFF + 22);
+  for (let i = taille - 22; i >= taille - limite && i >= 0; i--) {
+    if (dv.getUint32(i, true) === SIG_FIN) return i;
+  }
+  return -1;
+}
+
+/** Renvoie { entrees: [...], commentaire } sans décompresser les données. */
+function lireCatalogue(tampon) {
+  const dv = new DataView(tampon);
+  const taille = tampon.byteLength;
+  if (taille < 22) throw new Error("Fichier trop petit pour être une archive ZIP.");
+
+  const posFin = trouverFin(dv, taille);
+  if (posFin < 0) {
+    throw new Error(
+      "Ce fichier n'est pas une archive ZIP lisible (signature de fin absente). " +
+      "S'il s'agit d'un .rar, .7z ou d'un ZIP en plusieurs parties, cet outil ne " +
+      "sait pas l'ouvrir.");
+  }
+
+  let nbEntrees = dv.getUint16(posFin + 10, true);
+  let debutCatalogue = dv.getUint32(posFin + 16, true);
+
+  // ZIP64 : les champs 32 bits sont saturés, les vraies valeurs sont ailleurs.
+  if (nbEntrees === 0xFFFF || debutCatalogue === 0xFFFFFFFF) {
+    const posLoc = posFin - 20;
+    if (posLoc >= 0 && dv.getUint32(posLoc, true) === SIG_LOC64) {
+      const posFin64 = Number(dv.getBigUint64(posLoc + 8, true));
+      if (dv.getUint32(posFin64, true) === SIG_FIN64) {
+        nbEntrees = Number(dv.getBigUint64(posFin64 + 32, true));
+        debutCatalogue = Number(dv.getBigUint64(posFin64 + 48, true));
+      }
+    }
+  }
+
+  const entrees = [];
+  let p = debutCatalogue;
+  for (let i = 0; i < nbEntrees; i++) {
+    if (p + 46 > taille || dv.getUint32(p, true) !== SIG_CENTRAL) break;
+    const drapeaux = dv.getUint16(p + 8, true);
+    const methode = dv.getUint16(p + 10, true);
+    const heure = dv.getUint16(p + 12, true);
+    const jour = dv.getUint16(p + 14, true);
+    const crc = dv.getUint32(p + 16, true);
+    let tailleComp = dv.getUint32(p + 20, true);
+    let tailleBrute = dv.getUint32(p + 24, true);
+    const lgNom = dv.getUint16(p + 28, true);
+    const lgExtra = dv.getUint16(p + 30, true);
+    const lgComm = dv.getUint16(p + 32, true);
+    let posLocale = dv.getUint32(p + 42, true);
+    const nom = decoderNom(new Uint8Array(tampon, p + 46, lgNom), drapeaux);
+
+    // Champ extra ZIP64 (0x0001) : remplace les valeurs saturées, dans l'ordre.
+    let q = p + 46 + lgNom;
+    const finExtra = q + lgExtra;
+    while (q + 4 <= finExtra) {
+      const id = dv.getUint16(q, true);
+      const lg = dv.getUint16(q + 2, true);
+      if (id === 0x0001) {
+        let r = q + 4;
+        if (tailleBrute === 0xFFFFFFFF && r + 8 <= finExtra) {
+          tailleBrute = Number(dv.getBigUint64(r, true)); r += 8;
+        }
+        if (tailleComp === 0xFFFFFFFF && r + 8 <= finExtra) {
+          tailleComp = Number(dv.getBigUint64(r, true)); r += 8;
+        }
+        if (posLocale === 0xFFFFFFFF && r + 8 <= finExtra) {
+          posLocale = Number(dv.getBigUint64(r, true)); r += 8;
+        }
+      }
+      q += 4 + lg;
+    }
+
+    entrees.push({
+      nom, methode, crc, tailleComp, tailleBrute, posLocale, drapeaux,
+      date: dosVersDate(heure, jour),
+      chiffre: (drapeaux & 0x0001) !== 0,
+      dossier: nom.endsWith("/") || nom.endsWith("\\"),
+    });
+    p += 46 + lgNom + lgExtra + lgComm;
+  }
+
+  if (!entrees.length && nbEntrees > 0) {
+    throw new Error("Le catalogue de l'archive est illisible ou endommagé.");
+  }
+  return entrees;
+}
+
+/** Extrait les octets d'une entrée en s'appuyant sur son en-tête local. */
+async function extraire(tampon, e) {
+  const dv = new DataView(tampon);
+  if (dv.getUint32(e.posLocale, true) !== SIG_LOCAL) {
+    throw new Error("en-tête local absent");
+  }
+  const lgNom = dv.getUint16(e.posLocale + 26, true);
+  const lgExtra = dv.getUint16(e.posLocale + 28, true);
+  const debut = e.posLocale + 30 + lgNom + lgExtra;
+  const brut = new Uint8Array(tampon, debut, Math.min(e.tailleComp, tampon.byteLength - debut));
+
+  if (e.methode === 0) return brut.slice();
+  if (e.methode === 8) {
+    if (!COMPRESSION_DISPO) {
+      throw new Error("ce navigateur ne sait pas décompresser (deflate)");
+    }
+    return await decompresser(brut);
+  }
+  throw new Error("méthode de compression " + e.methode + " non prise en charge");
+}
+
+/* ==================================================================
+   Écriture d'une archive ZIP
+   ================================================================== */
+
+async function construireZip(fichiers, avecCompression) {
+  const enc = new TextEncoder();
+  const morceaux = [];
+  const catalogue = [];
+  let position = 0;
+
+  for (const f of fichiers) {
+    const nomOctets = enc.encode(f.nom);
+    const donnees = f.dossier ? new Uint8Array(0) : f.donnees;
+    const crc = f.dossier ? 0 : crc32(donnees);
+    let methode = 0;
+    let charge = donnees;
+
+    if (avecCompression && !f.dossier && donnees.length > 0 && COMPRESSION_DISPO) {
+      const comp = await compresser(donnees);
+      if (comp.length < donnees.length) { methode = 8; charge = comp; }
+    }
+
+    const { heure, jour } = dateVersDos(f.date instanceof Date ? f.date : new Date());
+
+    const local = new Uint8Array(30);
+    const dvl = new DataView(local.buffer);
+    dvl.setUint32(0, SIG_LOCAL, true);
+    dvl.setUint16(4, 20, true);            // version minimale : 2.0
+    dvl.setUint16(6, 0x0800, true);        // noms en UTF-8
+    dvl.setUint16(8, methode, true);
+    dvl.setUint16(10, heure, true);
+    dvl.setUint16(12, jour, true);
+    dvl.setUint32(14, crc, true);
+    dvl.setUint32(18, charge.length, true);
+    dvl.setUint32(22, donnees.length, true);
+    dvl.setUint16(26, nomOctets.length, true);
+    dvl.setUint16(28, 0, true);
+    morceaux.push(local, nomOctets, charge);
+
+    const central = new Uint8Array(46);
+    const dvc = new DataView(central.buffer);
+    dvc.setUint32(0, SIG_CENTRAL, true);
+    dvc.setUint16(4, 0x0314, true);        // créé sous Unix, version 2.0
+    dvc.setUint16(6, 20, true);
+    dvc.setUint16(8, 0x0800, true);
+    dvc.setUint16(10, methode, true);
+    dvc.setUint16(12, heure, true);
+    dvc.setUint16(14, jour, true);
+    dvc.setUint32(16, crc, true);
+    dvc.setUint32(20, charge.length, true);
+    dvc.setUint32(24, donnees.length, true);
+    dvc.setUint16(28, nomOctets.length, true);
+    dvc.setUint16(30, 0, true);
+    dvc.setUint16(32, 0, true);
+    dvc.setUint16(34, 0, true);
+    dvc.setUint16(36, 0, true);
+    dvc.setUint32(38, f.dossier ? ((0o40755 << 16) | 0x10) : (0o100644 << 16), true);
+    dvc.setUint32(42, position, true);
+    catalogue.push(central, nomOctets);
+
+    position += local.length + nomOctets.length + charge.length;
+    if (position > 0xFFFFFFFF) {
+      throw new Error(
+        "Archive trop volumineuse : cet outil s'arrête à 4 Go (le format ZIP64 " +
+        "n'est pas géré en écriture).");
+    }
+  }
+
+  const debutCatalogue = position;
+  let tailleCatalogue = 0;
+  for (const m of catalogue) tailleCatalogue += m.length;
+
+  const fin = new Uint8Array(22);
+  const dvf = new DataView(fin.buffer);
+  dvf.setUint32(0, SIG_FIN, true);
+  dvf.setUint16(4, 0, true);
+  dvf.setUint16(6, 0, true);
+  dvf.setUint16(8, fichiers.length, true);
+  dvf.setUint16(10, fichiers.length, true);
+  dvf.setUint32(12, tailleCatalogue, true);
+  dvf.setUint32(16, debutCatalogue, true);
+  dvf.setUint16(20, 0, true);
+
+  return new Blob([...morceaux, ...catalogue, fin], { type: "application/zip" });
+}
+
+/* ==================================================================
+   Images : détection et types MIME
+   ================================================================== */
+
+const TYPES_IMAGE = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", jpe: "image/jpeg", jfif: "image/jpeg",
+  png: "image/png", apng: "image/apng", gif: "image/gif", webp: "image/webp",
+  bmp: "image/bmp", avif: "image/avif", ico: "image/x-icon", svg: "image/svg+xml",
+};
+
+const extension = (nom) => {
+  const base = nom.split("/").pop();
+  const i = base.lastIndexOf(".");
+  return i > 0 ? base.slice(i + 1).toLowerCase() : "";
+};
+
+/** Reconnaît les images par signature binaire, même si l'extension ment. */
+function typeParSignature(o) {
+  if (!o || o.length < 12) return null;
+  if (o[0] === 0xFF && o[1] === 0xD8 && o[2] === 0xFF) return "image/jpeg";
+  if (o[0] === 0x89 && o[1] === 0x50 && o[2] === 0x4E && o[3] === 0x47) return "image/png";
+  if (o[0] === 0x47 && o[1] === 0x49 && o[2] === 0x46) return "image/gif";
+  if (o[0] === 0x42 && o[1] === 0x4D) return "image/bmp";
+  const marque = String.fromCharCode(o[8], o[9], o[10], o[11]);
+  if (o[0] === 0x52 && o[1] === 0x49 && o[2] === 0x46 && o[3] === 0x46 && marque === "WEBP") {
+    return "image/webp";
+  }
+  if (marque === "ftyp") {
+    const sous = String.fromCharCode(o[12] || 0, o[13] || 0, o[14] || 0, o[15] || 0);
+    if (sous.startsWith("avif") || sous.startsWith("avis")) return "image/avif";
+  }
+  return null;
+}
+
+function typeImage(entree) {
+  if (entree.dossier || !entree.donnees) return null;
+  return typeParSignature(entree.donnees) || TYPES_IMAGE[extension(entree.nom)] || null;
+}
+
+/* ==================================================================
+   Formatage
+   ================================================================== */
+
+function taillelisible(n) {
+  if (n === 0) return "0 o";
+  const u = ["o", "Ko", "Mo", "Go"];
+  const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+  const v = n / Math.pow(1024, i);
+  return (i === 0 ? v : v.toFixed(v < 10 ? 1 : 0)).toString().replace(".", ",") + " " + u[i];
+}
+
+const dateLisible = (d) => d.toLocaleDateString("fr-FR") + " " +
+  d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+function nettoyerTexte(s) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "archive";
+}
+
+function separerNom(nom) {
+  const barre = nom.lastIndexOf("/");
+  const dossier = barre >= 0 ? nom.slice(0, barre + 1) : "";
+  const base = nom.slice(barre + 1);
+  const point = base.lastIndexOf(".");
+  return point > 0
+    ? { dossier, souche: base.slice(0, point), ext: base.slice(point) }
+    : { dossier, souche: base, ext: "" };
+}
+
+/* ==================================================================
+   État de l'application
+   ================================================================== */
+
+const etat = {
+  nomSource: null,       // nom du .zip ouvert, ou null si on part de rien
+  entrees: [],           // { nom, donnees, date, dossier, inclus, choisie,
+                         //   erreur, chiffre, origine, urlApercu, mime }
+  vue: "liste",
+  ordreGalerie: [],      // indices des entrées affichées dans la visionneuse
+  indexVisionneuse: 0,
+};
+
+const $ = (id) => document.getElementById(id);
+
+/* ==================================================================
+   Affichage
+   ================================================================== */
+
+function messagerie(el, texte, genre, liste) {
+  if (!texte) { el.hidden = true; el.textContent = ""; return; }
+  el.hidden = false;
+  el.className = "message" + (genre ? " " + genre : "");
+  el.textContent = texte;
+  if (liste && liste.length) {
+    const ul = document.createElement("ul");
+    for (const l of liste) {
+      const li = document.createElement("li");
+      li.textContent = l;
+      ul.appendChild(li);
+    }
+    el.appendChild(ul);
+  }
+}
+
+let compteurTravail = 0;
+function travail(texte) {
+  compteurTravail++;
+  $("travail-texte").textContent = texte;
+  $("travail").hidden = false;
+}
+function finTravail() {
+  compteurTravail = Math.max(0, compteurTravail - 1);
+  if (compteurTravail === 0) $("travail").hidden = true;
+}
+
+function libererApercus() {
+  for (const e of etat.entrees) {
+    if (e.urlApercu) { URL.revokeObjectURL(e.urlApercu); e.urlApercu = null; }
+  }
+}
+
+function urlApercu(e) {
+  if (!e.mime) return null;
+  if (!e.urlApercu) {
+    e.urlApercu = URL.createObjectURL(new Blob([e.donnees], { type: e.mime }));
+  }
+  return e.urlApercu;
+}
+
+function retenues() {
+  return etat.entrees.filter((e) => e.inclus);
+}
+
+/** Noms en double, vides ou dangereux : renvoie la liste des problèmes. */
+function problemesDeNoms() {
+  const soucis = [];
+  const vus = new Map();
+  for (const e of etat.entrees) {
+    e.invalide = false;
+    if (!e.inclus) continue;
+    const nom = e.nom.trim();
+    if (!nom || nom === "/") {
+      e.invalide = true;
+      soucis.push("Un nom est vide.");
+      continue;
+    }
+    if (nom.startsWith("/") || /(^|\/)\.\.(\/|$)/.test(nom)) {
+      e.invalide = true;
+      soucis.push("« " + nom + " » sort de l'archive (chemin absolu ou « .. »).");
+      continue;
+    }
+    const cle = nom.toLowerCase();
+    if (vus.has(cle)) {
+      e.invalide = true;
+      vus.get(cle).invalide = true;
+      soucis.push("« " + nom + " » apparaît deux fois.");
+    } else {
+      vus.set(cle, e);
+    }
+  }
+  return [...new Set(soucis)];
+}
+
+function dessinerResume() {
+  const gardees = retenues();
+  const fichiers = gardees.filter((e) => !e.dossier);
+  const images = fichiers.filter((e) => e.mime);
+  const octets = fichiers.reduce((s, e) => s + (e.donnees ? e.donnees.length : 0), 0);
+  const illisibles = etat.entrees.filter((e) => e.erreur).length;
+
+  const tuiles = [
+    [fichiers.length, fichiers.length > 1 ? "fichiers gardés" : "fichier gardé"],
+    [images.length, images.length > 1 ? "images" : "image"],
+    [taillelisible(octets), "poids décompressé"],
+  ];
+  if (illisibles) tuiles.push([illisibles, "entrées illisibles"]);
+
+  const conteneur = $("resume");
+  conteneur.textContent = "";
+  for (const [valeur, intitule] of tuiles) {
+    const d = document.createElement("div");
+    d.className = "tuile";
+    const v = document.createElement("div");
+    v.className = "valeur";
+    v.textContent = valeur;
+    const i = document.createElement("div");
+    i.className = "intitule";
+    i.textContent = intitule;
+    d.append(v, i);
+    conteneur.appendChild(d);
+  }
+}
+
+function dessinerListe() {
+  const hote = $("vue-liste");
+  hote.textContent = "";
+
+  if (!etat.entrees.length) {
+    const p = document.createElement("p");
+    p.className = "note";
+    p.textContent = "L'archive est vide. Ajoutez des fichiers pour continuer.";
+    hote.appendChild(p);
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "liste";
+  const thead = document.createElement("thead");
+  const tr = document.createElement("tr");
+  for (const titre of ["", "", "Nom dans l'archive", "Taille", "Date", ""]) {
+    const th = document.createElement("th");
+    th.textContent = titre;
+    tr.appendChild(th);
+  }
+  thead.appendChild(tr);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  etat.entrees.forEach((e, index) => {
+    const ligne = document.createElement("tr");
+    if (!e.inclus) ligne.className = "exclue";
+
+    const tdCoche = document.createElement("td");
+    const coche = document.createElement("input");
+    coche.type = "checkbox";
+    coche.checked = !!e.choisie;
+    coche.title = "Sélectionner pour le renommage en série ou le retrait";
+    coche.addEventListener("change", () => { e.choisie = coche.checked; });
+    tdCoche.appendChild(coche);
+
+    const tdVignette = document.createElement("td");
+    tdVignette.className = "vignette";
+    if (e.mime) {
+      const img = document.createElement("img");
+      img.src = urlApercu(e);
+      img.alt = e.nom;
+      img.loading = "lazy";
+      img.addEventListener("click", () => ouvrirVisionneuse(index));
+      tdVignette.appendChild(img);
+    } else {
+      const d = document.createElement("div");
+      d.className = "icone";
+      d.textContent = e.dossier ? "dos" : (extension(e.nom) || "?");
+      tdVignette.appendChild(d);
+    }
+
+    const tdNom = document.createElement("td");
+    tdNom.className = "nom";
+    const champ = document.createElement("input");
+    champ.type = "text";
+    champ.value = e.nom;
+    champ.spellcheck = false;
+    champ.title = e.origine && e.origine !== e.nom
+      ? "Nom d'origine : " + e.origine : "Cliquez pour renommer";
+    if (e.invalide) champ.className = "invalide";
+    champ.addEventListener("input", () => { e.nom = champ.value; });
+    champ.addEventListener("change", () => { rafraichir(); });
+    tdNom.appendChild(champ);
+    if (e.chiffre) {
+      const et = document.createElement("span");
+      et.className = "etiquette rouge";
+      et.textContent = "protégé par mot de passe";
+      tdNom.appendChild(et);
+    } else if (e.erreur) {
+      const et = document.createElement("span");
+      et.className = "etiquette rouge";
+      et.textContent = e.erreur;
+      tdNom.appendChild(et);
+    }
+
+    const tdTaille = document.createElement("td");
+    tdTaille.className = "nombre";
+    tdTaille.textContent = e.dossier ? "—" :
+      (e.donnees ? taillelisible(e.donnees.length) : "illisible");
+
+    const tdDate = document.createElement("td");
+    tdDate.className = "nombre";
+    tdDate.textContent = dateLisible(e.date);
+
+    const tdActions = document.createElement("td");
+    tdActions.className = "actions";
+    const bascule = document.createElement("button");
+    bascule.className = "secondaire" + (e.inclus ? " danger" : "");
+    bascule.textContent = e.inclus ? "Retirer" : "Remettre";
+    bascule.addEventListener("click", () => { e.inclus = !e.inclus; rafraichir(); });
+    tdActions.appendChild(bascule);
+
+    ligne.append(tdCoche, tdVignette, tdNom, tdTaille, tdDate, tdActions);
+    tbody.appendChild(ligne);
+  });
+  table.appendChild(tbody);
+  hote.appendChild(table);
+}
+
+function dessinerGalerie() {
+  const hote = $("vue-galerie");
+  hote.textContent = "";
+  const images = etat.entrees
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.mime);
+
+  if (!images.length) {
+    const p = document.createElement("p");
+    p.className = "note";
+    p.textContent = "Aucune image reconnue dans cette archive. " +
+      "Formats affichables : JPEG, PNG, GIF, WebP, BMP, AVIF, SVG, ICO.";
+    hote.appendChild(p);
+    return;
+  }
+
+  const grille = document.createElement("div");
+  grille.className = "galerie";
+  for (const { e, i } of images) {
+    const fig = document.createElement("figure");
+    if (!e.inclus) fig.style.opacity = ".42";
+    const img = document.createElement("img");
+    img.src = urlApercu(e);
+    img.alt = e.nom;
+    img.loading = "lazy";
+    img.addEventListener("click", () => ouvrirVisionneuse(i));
+
+    const legende = document.createElement("figcaption");
+    const nom = document.createElement("b");
+    nom.textContent = e.nom;
+    const info = document.createElement("span");
+    info.textContent = taillelisible(e.donnees.length);
+    img.addEventListener("load", () => {
+      info.textContent = img.naturalWidth + " × " + img.naturalHeight +
+        " — " + taillelisible(e.donnees.length);
+    });
+    legende.append(nom, info);
+    fig.append(img, legende);
+    grille.appendChild(fig);
+  }
+  hote.appendChild(grille);
+}
+
+function rafraichir() {
+  for (const e of etat.entrees) {
+    if (e.mime === undefined) e.mime = typeImage(e);
+  }
+  problemesDeNoms();
+  dessinerResume();
+  if (etat.vue === "liste") {
+    $("vue-liste").hidden = false;
+    $("vue-galerie").hidden = true;
+    dessinerListe();
+  } else {
+    $("vue-liste").hidden = true;
+    $("vue-galerie").hidden = false;
+    dessinerGalerie();
+  }
+  $("carte-nom").hidden = false;
+  $("carte-contenu").hidden = false;
+  $("carte-creer").hidden = false;
+  $("btn-creer").disabled = retenues().filter((e) => !e.dossier).length === 0;
+}
+
+/* ==================================================================
+   Visionneuse plein écran
+   ================================================================== */
+
+function ouvrirVisionneuse(indexEntree) {
+  etat.ordreGalerie = etat.entrees
+    .map((e, i) => (e.mime ? i : -1))
+    .filter((i) => i >= 0);
+  const pos = etat.ordreGalerie.indexOf(indexEntree);
+  etat.indexVisionneuse = pos >= 0 ? pos : 0;
+  if (!etat.ordreGalerie.length) return;
+  $("visionneuse").hidden = false;
+  montrerImage();
+}
+
+function montrerImage() {
+  const e = etat.entrees[etat.ordreGalerie[etat.indexVisionneuse]];
+  if (!e) return;
+  $("visionneuse-img").src = urlApercu(e);
+  $("visionneuse-img").alt = e.nom;
+  $("vue-titre").textContent = e.nom;
+  $("vue-compteur").textContent =
+    (etat.indexVisionneuse + 1) + " / " + etat.ordreGalerie.length;
+  const seule = etat.ordreGalerie.length < 2;
+  $("vue-prec").disabled = seule;
+  $("vue-suiv").disabled = seule;
+}
+
+function deplacerVisionneuse(pas) {
+  const n = etat.ordreGalerie.length;
+  if (!n) return;
+  etat.indexVisionneuse = (etat.indexVisionneuse + pas + n) % n;
+  montrerImage();
+}
+
+function fermerVisionneuse() {
+  $("visionneuse").hidden = true;
+  $("visionneuse-img").src = "";
+}
+
+$("vue-prec").addEventListener("click", () => deplacerVisionneuse(-1));
+$("vue-suiv").addEventListener("click", () => deplacerVisionneuse(1));
+$("vue-fermer").addEventListener("click", fermerVisionneuse);
+$("visionneuse").addEventListener("click", (ev) => {
+  if (ev.target.id === "visionneuse") fermerVisionneuse();
+});
+$("vue-telecharger").addEventListener("click", () => {
+  const e = etat.entrees[etat.ordreGalerie[etat.indexVisionneuse]];
+  if (e) telecharger(new Blob([e.donnees], { type: e.mime }), e.nom.split("/").pop());
+});
+document.addEventListener("keydown", (ev) => {
+  if ($("visionneuse").hidden) return;
+  if (ev.key === "Escape") fermerVisionneuse();
+  else if (ev.key === "ArrowLeft") deplacerVisionneuse(-1);
+  else if (ev.key === "ArrowRight") deplacerVisionneuse(1);
+});
+
+/* ==================================================================
+   Ouverture d'une archive / ajout de fichiers
+   ================================================================== */
+
+async function ouvrirArchive(fichier) {
+  travail("Lecture de « " + fichier.name + " »…");
+  try {
+    const tampon = await fichier.arrayBuffer();
+    const catalogue = lireCatalogue(tampon);
+
+    libererApercus();
+    etat.nomSource = fichier.name;
+    etat.entrees = [];
+
+    const echecs = [];
+    for (const e of catalogue) {
+      const entree = {
+        nom: e.nom.replace(/\\/g, "/"),
+        origine: e.nom,
+        date: e.date,
+        dossier: e.dossier,
+        chiffre: e.chiffre,
+        inclus: true,
+        choisie: false,
+        donnees: null,
+        erreur: null,
+        mime: undefined,
+      };
+      if (e.dossier) {
+        entree.donnees = new Uint8Array(0);
+      } else if (e.chiffre) {
+        entree.erreur = "chiffré";
+        entree.inclus = false;
+        echecs.push(e.nom + " — protégé par mot de passe");
+      } else {
+        try {
+          entree.donnees = await extraire(tampon, e);
+          if (entree.donnees.length !== e.tailleBrute && e.tailleBrute > 0) {
+            entree.erreur = "taille inattendue";
+          } else if (crc32(entree.donnees) !== e.crc && e.crc !== 0) {
+            entree.erreur = "CRC différent";
+            echecs.push(e.nom + " — somme de contrôle différente, fichier peut-être abîmé");
+          }
+        } catch (err) {
+          entree.erreur = String(err.message || err);
+          entree.inclus = false;
+          echecs.push(e.nom + " — " + entree.erreur);
+        }
+      }
+      etat.entrees.push(entree);
+    }
+
+    const base = separerNom(fichier.name).souche || "archive";
+    $("nom-archive").value = base;
+    etat.vue = "liste";
+    majSegments();
+    rafraichir();
+
+    const gardees = etat.entrees.filter((e) => !e.dossier).length;
+    const images = etat.entrees.filter((e) => e.mime).length;
+    let texte = "« " + fichier.name + " » ouverte : " + gardees +
+      (gardees > 1 ? " fichiers" : " fichier") +
+      (images ? ", dont " + images + (images > 1 ? " images" : " image") : "") + ".";
+    if (echecs.length) {
+      messagerie($("message-source"),
+        texte + " " + echecs.length +
+        (echecs.length > 1 ? " entrées n'ont pas pu être lues :" : " entrée n'a pas pu être lue :"),
+        "alerte", echecs.slice(0, 12));
+    } else {
+      messagerie($("message-source"), texte, "ok");
+    }
+    messagerie($("message-creer"), null);
+  } catch (err) {
+    messagerie($("message-source"), "Impossible d'ouvrir ce fichier. " +
+      String(err.message || err), "erreur");
+  } finally {
+    finTravail();
+  }
+}
+
+async function ajouterFichiers(liste) {
+  const fichiers = [...liste];
+  if (!fichiers.length) return;
+  travail("Ajout de " + fichiers.length + (fichiers.length > 1 ? " fichiers…" : " fichier…"));
+  try {
+    for (const f of fichiers) {
+      const donnees = new Uint8Array(await f.arrayBuffer());
+      const nom = (f.webkitRelativePath || f.name).replace(/\\/g, "/");
+      etat.entrees.push({
+        nom, origine: nom, donnees,
+        date: f.lastModified ? new Date(f.lastModified) : new Date(),
+        dossier: false, chiffre: false, inclus: true, choisie: false,
+        erreur: null, mime: undefined,
+      });
+    }
+    if (!$("nom-archive").value.trim()) {
+      $("nom-archive").value = etat.nomSource
+        ? separerNom(etat.nomSource).souche : "nouvelle-archive";
+    }
+    rafraichir();
+    messagerie($("message-source"), fichiers.length +
+      (fichiers.length > 1 ? " fichiers ajoutés" : " fichier ajouté") +
+      " au contenu de l'archive.", "ok");
+  } finally {
+    finTravail();
+  }
+}
+
+/* ==================================================================
+   Dépôt de fichiers
+   ================================================================== */
+
+const zone = $("zone-depot");
+zone.addEventListener("click", () => $("saisie-zip").click());
+zone.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); $("saisie-zip").click(); }
+});
+$("saisie-zip").addEventListener("change", (ev) => {
+  if (ev.target.files[0]) ouvrirArchive(ev.target.files[0]);
+  ev.target.value = "";
+});
+$("saisie-ajout").addEventListener("change", (ev) => {
+  ajouterFichiers(ev.target.files);
+  ev.target.value = "";
+});
+$("btn-ajouter").addEventListener("click", () => $("saisie-ajout").click());
+
+function estZip(f) {
+  return /\.zip$/i.test(f.name) || f.type === "application/zip" ||
+    f.type === "application/x-zip-compressed";
+}
+
+["dragenter", "dragover"].forEach((n) => {
+  document.addEventListener(n, (ev) => {
+    ev.preventDefault();
+    zone.classList.add("survol");
+  });
+});
+["dragleave", "drop"].forEach((n) => {
+  document.addEventListener(n, (ev) => {
+    ev.preventDefault();
+    if (n === "drop" || ev.target === zone) zone.classList.remove("survol");
+  });
+});
+document.addEventListener("drop", (ev) => {
+  const fichiers = [...(ev.dataTransfer ? ev.dataTransfer.files : [])];
+  if (!fichiers.length) return;
+  const zip = fichiers.find(estZip);
+  if (zip && fichiers.length === 1) ouvrirArchive(zip);
+  else if (zip) {
+    ouvrirArchive(zip).then(() => ajouterFichiers(fichiers.filter((f) => f !== zip)));
+  } else ajouterFichiers(fichiers);
+});
+
+/* ==================================================================
+   Nom de l'archive
+   ================================================================== */
+
+function nomFinal() {
+  let n = $("nom-archive").value.replace(/\.zip$/i, "");
+  n = n.replace(/[\\/:*?"<>|\u0000-\u001F]/g, "-")   // interdits par les systèmes
+       .replace(/\s+/g, " ")
+       .replace(/-{2,}/g, "-")
+       .replace(/^[\s.\-]+|[\s.\-]+$/g, "");         // pas de tiret ou point aux bouts
+  if (!n) n = etat.nomSource ? separerNom(etat.nomSource).souche : "nouvelle-archive";
+  return n + ".zip";
+}
+
+$("btn-nom-nettoyer").addEventListener("click", () => {
+  $("nom-archive").value = nettoyerTexte($("nom-archive").value ||
+    (etat.nomSource ? separerNom(etat.nomSource).souche : "archive"));
+});
+$("btn-nom-date").addEventListener("click", () => {
+  const d = new Date();
+  const p = (x) => String(x).padStart(2, "0");
+  const jour = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  const actuel = $("nom-archive").value.trim().replace(/\.zip$/i, "");
+  if (actuel.endsWith(jour)) return;
+  $("nom-archive").value = (actuel || "archive") + "-" + jour;
+});
+$("btn-nom-origine").addEventListener("click", () => {
+  $("nom-archive").value = etat.nomSource
+    ? separerNom(etat.nomSource).souche : "nouvelle-archive";
+});
+$("nom-archive").addEventListener("input", () => messagerie($("message-nom"), null));
+
+/* ==================================================================
+   Sélection et renommage en série
+   ================================================================== */
+
+function cocher(filtre) {
+  for (const e of etat.entrees) e.choisie = filtre(e);
+  rafraichir();
+}
+$("btn-tout-cocher").addEventListener("click", () => cocher(() => true));
+$("btn-rien-cocher").addEventListener("click", () => cocher(() => false));
+$("btn-images-cocher").addEventListener("click", () => cocher((e) => !!e.mime));
+
+$("btn-retirer").addEventListener("click", () => {
+  const choisies = etat.entrees.filter((e) => e.choisie);
+  if (!choisies.length) {
+    messagerie($("message-source"),
+      "Cochez d'abord les lignes à retirer.", "alerte");
+    return;
+  }
+  for (const e of choisies) {
+    if (e.urlApercu) { URL.revokeObjectURL(e.urlApercu); e.urlApercu = null; }
+  }
+  etat.entrees = etat.entrees.filter((e) => !e.choisie);
+  rafraichir();
+  messagerie($("message-source"), choisies.length +
+    (choisies.length > 1 ? " entrées retirées." : " entrée retirée."), "ok");
+});
+
+$("btn-lot").addEventListener("click", () => {
+  const motif = $("motif-lot").value.trim();
+  const cibles = etat.entrees.filter((e) => e.choisie && !e.dossier);
+  if (!motif) {
+    messagerie($("message-source"),
+      "Écrivez un motif, par exemple « photo-### ».", "alerte");
+    return;
+  }
+  if (!cibles.length) {
+    messagerie($("message-source"),
+      "Cochez d'abord les fichiers à renommer.", "alerte");
+    return;
+  }
+  const depart = parseInt($("depart-lot").value, 10) || 0;
+  const grille = motif.match(/#+/);
+  const largeur = grille ? grille[0].length : 0;
+
+  cibles.forEach((e, i) => {
+    const numero = String(depart + i).padStart(Math.max(largeur, 1), "0");
+    const { dossier, ext } = separerNom(e.nom);
+    const souche = grille ? motif.replace(/#+/, numero) : motif + "-" + numero;
+    e.nom = dossier + souche + ext;
+  });
+  rafraichir();
+  messagerie($("message-source"), cibles.length +
+    (cibles.length > 1 ? " fichiers renommés." : " fichier renommé."), "ok");
+});
+
+/* ==================================================================
+   Bascule liste / galerie
+   ================================================================== */
+
+function majSegments() {
+  for (const b of $("segments-vue").querySelectorAll("button")) {
+    b.classList.toggle("actif", b.dataset.vue === etat.vue);
+  }
+}
+$("segments-vue").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button");
+  if (!b) return;
+  etat.vue = b.dataset.vue;
+  majSegments();
+  rafraichir();
+});
+
+/* ==================================================================
+   Création du nouveau fichier
+   ================================================================== */
+
+function telecharger(blob, nom) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/** Relit l'archive produite et compare chaque CRC : vérification réelle. */
+async function verifier(blob, attendus) {
+  const tampon = await blob.arrayBuffer();
+  const catalogue = lireCatalogue(tampon);
+  if (catalogue.length !== attendus.length) {
+    throw new Error("l'archive relue contient " + catalogue.length +
+      " entrées au lieu de " + attendus.length);
+  }
+  for (let i = 0; i < catalogue.length; i++) {
+    const lu = catalogue[i];
+    const src = attendus[i];
+    if (lu.nom !== src.nom) {
+      throw new Error("nom relu « " + lu.nom + " » au lieu de « " + src.nom + " »");
+    }
+    if (src.dossier) continue;
+    const octets = await extraire(tampon, lu);
+    if (octets.length !== src.donnees.length || crc32(octets) !== crc32(src.donnees)) {
+      throw new Error("contenu différent pour « " + src.nom + " »");
+    }
+  }
+}
+
+$("btn-creer").addEventListener("click", async () => {
+  const soucis = problemesDeNoms();
+  rafraichir();
+  if (soucis.length) {
+    messagerie($("message-creer"),
+      "Corrigez les noms avant de créer l'archive :", "erreur", soucis);
+    return;
+  }
+
+  const gardees = retenues().map((e) => ({
+    nom: e.nom.trim(), donnees: e.donnees || new Uint8Array(0),
+    date: e.date, dossier: e.dossier,
+  }));
+  if (!gardees.filter((f) => !f.dossier).length) {
+    messagerie($("message-creer"),
+      "Il ne reste aucun fichier à mettre dans l'archive.", "erreur");
+    return;
+  }
+
+  const nom = nomFinal();
+  travail("Création de « " + nom + " »…");
+  try {
+    const blob = await construireZip(gardees, $("opt-compresser").checked);
+    let mention = "";
+    if ($("opt-verifier").checked) {
+      $("travail-texte").textContent = "Vérification de l'archive…";
+      await verifier(blob, gardees);
+      mention = " Relue et vérifiée : tous les contenus sont intacts.";
+    }
+    telecharger(blob, nom);
+
+    const brut = gardees.reduce((s, f) => s + f.donnees.length, 0);
+    const gain = brut > 0 ? Math.round((1 - blob.size / brut) * 100) : 0;
+    messagerie($("message-creer"),
+      "« " + nom + " » créée : " + gardees.filter((f) => !f.dossier).length +
+      " fichiers, " + taillelisible(blob.size) +
+      (gain > 0 ? " (" + gain + " % de moins que le contenu brut)" : "") +
+      "." + mention + " Le téléchargement a été lancé.", "ok");
+  } catch (err) {
+    messagerie($("message-creer"),
+      "La création a échoué. " + String(err.message || err), "erreur");
+  } finally {
+    finTravail();
+  }
+});
+
+/* ==================================================================
+   Démarrage
+   ================================================================== */
+
+if (!COMPRESSION_DISPO) {
+  messagerie($("message-source"),
+    "Ce navigateur ne propose pas CompressionStream : les archives compressées " +
+    "ne pourront ni être lues ni être créées. Utilisez une version récente de " +
+    "Firefox, Chrome, Edge ou Safari.", "erreur");
+}
+
+window.addEventListener("beforeunload", libererApercus);
+</script>
+</body>
+</html>

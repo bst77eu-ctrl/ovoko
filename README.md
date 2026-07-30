@@ -112,7 +112,25 @@ ovoko/
 │   ├── journal.py             # Module 4 (SQLite)
 │   └── stats.py               # winrate + corrélation checklist/résultats
 ├── static/index.html          # frontend une page (collage Ctrl+V)
+├── zip-studio.html            # outil séparé : ouvrir/renommer/recréer un .zip
 ├── tests/                     # pytest (aucun appel réseau)
 ├── eval/                      # captures + vérité terrain + script d'évaluation
 └── data/                      # journal.db + captures (créé au lancement, gitignoré)
 ```
+
+## Outil annexe : `zip-studio.html`
+
+Fichier HTML autonome, sans lien avec le reste du projet et sans serveur :
+**double-cliquez-le** pour l'ouvrir dans un navigateur.
+
+- déposez un `.zip` (ou des fichiers, pour partir de rien) ;
+- renommez l'archive à la main ou avec les boutons (nettoyage du nom, date) ;
+- renommez chaque fichier interne, en série (`photo-###`) ou un par un ;
+- regardez les images contenues (galerie + visionneuse plein écran,
+  flèches ← → et Échap) ;
+- créez le nouveau `.zip`, avec relecture de contrôle de l'archive produite.
+
+Lecture et écriture du format ZIP en JavaScript pur (`DecompressionStream` /
+`CompressionStream`) : aucune bibliothèque, aucun accès réseau, aucun fichier
+ne quitte la machine. Limites connues : pas de ZIP64 en écriture (4 Go max),
+et les entrées protégées par mot de passe sont signalées mais pas déchiffrées.
