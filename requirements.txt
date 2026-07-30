@@ -1,0 +1,4 @@
+# Module 2 uniquement pour l'instant.
+# Les dépendances des modules 1, 3 et 4 (fastapi, uvicorn, anthropic, pyyaml)
+# seront ajoutées une fois l'arborescence validée.
+pytest>=8
