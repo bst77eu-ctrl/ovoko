@@ -1,0 +1,4 @@
+{"instrument": 42, "timeframe": "H1", "prix_actuel": "environ 1.08",
+ "plus_haut_visible": "1.0920", "plus_bas_visible": true,
+ "niveaux_horizontaux": "beaucoup", "indicateurs_visibles": [1, "RSI", null],
+ "tendance_visuelle": 3, "champs_illisibles": "aucun", "fiabilite_lecture": "haute"}

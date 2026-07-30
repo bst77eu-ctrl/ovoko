@@ -1,0 +1,7 @@
+```json
+{"instrument": "DAX", "timeframe": "H4", "prix_actuel": null,
+ "plus_haut_visible": 18500, "plus_bas_visible": 18200,
+ "niveaux_horizontaux": [18300], "indicateurs_visibles": ["Volume"],
+ "tendance_visuelle": "laterale", "champs_illisibles": ["prix_actuel"],
+ "fiabilite_lecture": 0.7}
+```

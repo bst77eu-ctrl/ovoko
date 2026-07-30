@@ -1,0 +1,9 @@
+Voici l'analyse de votre graphique :
+
+{"instrument": "BTCUSD", "timeframe": "M15", "prix_actuel": 43250.0,
+ "plus_haut_visible": null, "plus_bas_visible": null,
+ "niveaux_horizontaux": [], "indicateurs_visibles": [],
+ "tendance_visuelle": "baissiere", "champs_illisibles": ["plus_haut_visible", "plus_bas_visible"],
+ "fiabilite_lecture": 0.6}
+
+N'hésitez pas si vous avez d'autres questions !

@@ -1,0 +1,4 @@
+{"instrument": "EURUSD", "timeframe": "H1", "prix_actuel": 1.0850,
+ "plus_haut_visible": 1.0920, "plus_bas_visible": 1.0790,
+ "niveaux_horizontaux": [1.0800, 1.0900], "indicateurs_visibles": ["EMA 200", "RSI"],
+ "tendance_visuelle": "haussiere", "champs_illisibles": [], "fiabilite_lecture": 0.9}

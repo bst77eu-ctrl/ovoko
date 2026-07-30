@@ -1,0 +1,1 @@
+{"instrument": "EURUSD",, "timeframe": H1, "prix_actuel": 1.0850,}

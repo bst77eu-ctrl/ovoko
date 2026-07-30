@@ -1,0 +1,5 @@
+{"instrument": "EURUSD", "timeframe": "H1", "prix_actuel": 1.0850,
+ "plus_haut_visible": null, "plus_bas_visible": null,
+ "niveaux_horizontaux": [], "indicateurs_visibles": [],
+ "tendance_visuelle": "va probablement monter", "champs_illisibles": [],
+ "fiabilite_lecture": 1.7}

@@ -1,0 +1,7 @@
+{"instrument": "EURUSD", "timeframe": "H1", "prix_actuel": 1.0850,
+ "plus_haut_visible": null, "plus_bas_visible": null,
+ "niveaux_horizontaux": [], "indicateurs_visibles": [],
+ "tendance_visuelle": "haussiere", "champs_illisibles": ["plus_haut_visible", "plus_bas_visible"],
+ "fiabilite_lecture": 0.8,
+ "recommandation": "acheter maintenant", "confiance_hausse": 0.92,
+ "objectif_prix_prevu": 1.1200}

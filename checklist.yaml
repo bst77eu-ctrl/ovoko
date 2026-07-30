@@ -1,0 +1,13 @@
+# Checklist de pré-trade — modifiez librement les questions.
+# Chaque entrée a un id (stable, utilisé pour les statistiques) et une
+# question. Répondez honnêtement : c'est la corrélation entre vos réponses
+# et vos résultats qui fait la valeur du journal.
+questions:
+  - id: stop_place
+    question: "Mon stop-loss est-il placé AVANT l'entrée en position ?"
+  - id: respect_plan
+    question: "Est-ce que je respecte mon plan de trading (et non une envie de rattraper une perte) ?"
+  - id: pas_de_publication
+    question: "Ai-je vérifié qu'aucune publication économique majeure n'est prévue dans l'heure ?"
+  - id: risque_accepte
+    question: "Suis-je prêt à perdre la totalité du montant risqué sur ce trade ?"
